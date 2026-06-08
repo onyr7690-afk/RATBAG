@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RATBAG — Free File Tools</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0e0e0e;
+      --surface: #161616;
+      --border: #2a2a2a;
+      --accent: #c8f135;
+      --accent-dim: #8aaa1f;
+      --text: #e8e8e0;
+      --muted: #666;
+      --danger: #ff4d4d;
+    }
+
+    body {
+      font-family: 'Space Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .header {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+
+    .tagline {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+    }
+
+    .tab {
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      padding: 12px 16px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      letter-spacing: 0.05em;
+      transition: color 0.15s;
+    }
+
+    .tab:hover { color: var(--text); }
+
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab .badge {
+      font-size: 9px;
+      background: var(--border);
+      color: var(--muted);
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin-left: 6px;
+    }
+
+    .tab.active .badge {
+      background: #1e2e00;
+      color: var(--accent-dim);
+    }
+
+    .panel { padding: 32px; display: none; max-width: 760px; }
+    .panel.active { display: block; }
+
+    .drop-zone {
+      border: 1.5px dashed var(--border);
+      border-radius: 6px;
+      padding: 52px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: #0e1a00;
+    }
+
+    .drop-zone input[type=file] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-icon {
+      font-size: 36px;
+      margin-bottom: 14px;
+      display: block;
+      color: var(--accent);
+    }
+
+    .drop-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .drop-sub { font-size: 11px; color: var(--muted); }
+
+    .file-list {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .file-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+    }
+
+    .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-size { color: var(--muted); font-size: 11px; white-space: nowrap; }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0 4px;
+      line-height: 1;
+      transition: color 0.1s;
+    }
+
+    .remove-btn:hover { color: var(--danger); }
+
+    .controls {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .control-group label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    select {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      padding: 9px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      transition: border-color 0.15s;
+    }
+
+    select:focus { outline: none; border-color: var(--accent); }
+
+    .convert-btn {
+      margin-top: 20px;
+      width: 100%;
+      background: var(--accent);
+      color: #0e0e0e;
+      border: none;
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      padding: 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .convert-btn:hover { background: #d4ff3d; }
+    .convert-btn:active { transform: scale(0.99); }
+    .convert-btn:disabled {
+      background: var(--border);
+      color: var(--muted);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .progress-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-top: 12px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.3s;
+      width: 0%;
+    }
+
+    .log-box {
+      margin-top: 16px;
+      background: #0a0a0a;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px 14px;
+      font-size: 11px;
+      color: var(--muted);
+      min-height: 70px;
+      max-height: 160px;
+      overflow-y: auto;
+      line-height: 1.8;
+    }
+
+    .log-line.ok { color: var(--accent); }
+    .log-line.err { color: var(--danger); }
+    .log-line.info { color: #aaa; }
+
+    .output-list {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .output-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #0e1a00;
+      border: 1px solid #1e3200;
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-size: 12px;
+    }
+
+    .dl-btn {
+      background: var(--accent);
+      color: #0e0e0e;
+      border: none;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 3px;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background 0.1s;
+    }
+
+    .dl-btn:hover { background: #d4ff3d; }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      display: inline-block;
+      margin-right: 7px;
+      transition: background 0.3s;
+    }
+
+    .status-dot.ready { background: var(--accent); box-shadow: 0 0 6px var(--accent-dim); }
+    .status-dot.loading { background: orange; }
+    .status-dot.error { background: var(--danger); }
+
+    .ffmpeg-status {
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+
+    .coming-soon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 24px;
+      text-align: center;
+      gap: 10px;
+      color: var(--muted);
+    }
+
+    .coming-soon .cs-icon { font-size: 32px; margin-bottom: 4px; }
+    .coming-soon .cs-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
+    .coming-soon .cs-sub { font-size: 11px; color: #444; }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 16px 32px;
+      font-size: 11px;
+      color: #444;
+      margin-top: 40px;
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo">RATBAG</div>
+    <div class="tagline">// free tools. no bs. runs in your browser.</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab(this, 'audio')">Audio Convert <span class="badge">LIVE</span></button>
+    <button class="tab" onclick="switchTab(this, 'video')">Video <span class="badge">SOON</span></button>
+    <button class="tab" onclick="switchTab(this, 'image')">Image <span class="badge">SOON</span></button>
+  </div>
+
+  <!-- AUDIO PANEL -->
+  <div id="tab-audio" class="panel active">
+    <div class="ffmpeg-status">
+      <span class="status-dot loading" id="ffmpeg-dot"></span>
+      <span id="ffmpeg-label">Loading FFmpeg (WebAssembly)...</span>
+    </div>
+
+    <div class="section-label">Drop your files</div>
+
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" multiple accept="audio/*,.mp3,.wav,.flac,.ogg,.aac,.m4a,.opus,.wma" />
+      <span class="drop-icon">&#9836;</span>
+      <div class="drop-title">Drop audio files here</div>
+      <div class="drop-sub">or click to browse &mdash; MP3, WAV, FLAC, OGG, AAC, M4A, OPUS supported</div>
+    </div>
+
+    <div class="file-list" id="file-list"></div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label>Output format</label>
+        <select id="format-select">
+          <option value="mp3">MP3</option>
+          <option value="aac">AAC</option>
+          <option value="flac">FLAC (lossless)</option>
+          <option value="wav">WAV (uncompressed)</option>
+          <option value="ogg">OGG Vorbis</option>
+          <option value="opus">OPUS</option>
+          <option value="m4a">M4A</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>Quality / Bitrate</label>
+        <select id="bitrate-select">
+          <option value="128k">128 kbps &mdash; good</option>
+          <option value="192k" selected>192 kbps &mdash; great</option>
+          <option value="256k">256 kbps &mdash; excellent</option>
+          <option value="320k">320 kbps &mdash; max</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="convert-btn" id="convert-btn" disabled onclick="startConvert()">
+      &#9889; CONVERT FILES
+    </button>
+
+    <div class="progress-bar" id="progress-bar">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+
+    <div class="log-box" id="log-box">
+      <div class="log-line">// initialising FFmpeg WebAssembly...</div>
+    </div>
+
+    <div id="output-list" class="output-list"></div>
+  </div>
+
+  <!-- VIDEO PANEL -->
+  <div id="tab-video" class="panel">
+    <div class="coming-soon">
+      <div class="cs-icon">&#9641;</div>
+      <div class="cs-title">Video conversion coming soon</div>
+      <div class="cs-sub">FFmpeg.wasm handles this too &mdash; just needs wiring up</div>
+    </div>
+  </div>
+
+  <!-- IMAGE PANEL -->
+  <div id="tab-image" class="panel">
+    <div class="coming-soon">
+      <div class="cs-icon">&#9728;</div>
+      <div class="cs-title">Image conversion coming soon</div>
+      <div class="cs-sub">PNG, JPEG, WebP, AVIF &mdash; on the roadmap</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    ratbag &mdash; all processing runs locally in your browser. nothing is uploaded anywhere. ever.
+  </div>
+
+  <!-- FFmpeg 0.12 — no SharedArrayBuffer required -->
+  <script type="module">
+    import { FFmpeg } from 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js';
+    import { fetchFile, toBlobURL } from 'https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js';
+
+    const ffmpeg = new FFmpeg();
+    let ffmpegReady = false;
+    let files = [];
+
+    window.files = files;
+
+    async function loadFFmpeg() {
+      const dot = document.getElementById('ffmpeg-dot');
+      const label = document.getElementById('ffmpeg-label');
+
+      try {
+        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.9/dist/esm';
+
+        ffmpeg.on('log', ({ message }) => {
+          if (message && (message.includes('time=') || message.includes('size='))) {
+            appendLog('// ' + message.trim(), 'info');
+          }
+        });
+
+        ffmpeg.on('progress', ({ progress }) => {
+          const pct = Math.min(100, Math.round(progress * 100));
+          document.getElementById('progress-fill').style.width = pct + '%';
+        });
+
+        await ffmpeg.load({
+          coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+          wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+        });
+
+        ffmpegReady = true;
+        dot.className = 'status-dot ready';
+        label.textContent = 'FFmpeg ready — running locally in your browser';
+        document.getElementById('convert-btn').disabled = false;
+        appendLog('// FFmpeg loaded. All processing stays on your machine.', 'ok');
+      } catch (e) {
+        dot.className = 'status-dot error';
+        label.textContent = 'FFmpeg failed to load — check your internet connection';
+        appendLog('// Error: ' + e.message, 'err');
+      }
+    }
+
+    window.switchTab = function(btn, name) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + name).classList.add('active');
+    };
+
+    function formatBytes(b) {
+      if (b < 1024) return b + ' B';
+      if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+      return (b / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function renderFileList() {
+      const list = document.getElementById('file-list');
+      list.innerHTML = '';
+      files.forEach((f, i) => {
+        const item = document.createElement('div');
+        item.className = 'file-item';
+        item.innerHTML = `
+          <span style="color:var(--muted);font-size:14px">&#9835;</span>
+          <span class="file-name">${f.name}</span>
+          <span class="file-size">${formatBytes(f.size)}</span>
+          <button class="remove-btn" onclick="window.removeFile(${i})" aria-label="Remove">&#215;</button>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    window.removeFile = function(i) {
+      files.splice(i, 1);
+      renderFileList();
+    };
+
+    function appendLog(msg, type = 'info') {
+      const box = document.getElementById('log-box');
+      const line = document.createElement('div');
+      line.className = 'log-line ' + type;
+      line.textContent = msg;
+      box.appendChild(line);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+
+    fileInput.addEventListener('change', () => {
+      files.push(...Array.from(fileInput.files));
+      renderFileList();
+      fileInput.value = '';
+    });
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const dropped = Array.from(e.dataTransfer.files).filter(f =>
+        f.type.startsWith('audio/') || /\.(mp3|wav|flac|ogg|aac|m4a|opus|wma)$/i.test(f.name)
+      );
+      files.push(...dropped);
+      renderFileList();
+    });
+
+    window.startConvert = async function() {
+      if (!ffmpegReady) return appendLog('// FFmpeg not ready yet', 'err');
+      if (files.length === 0) return appendLog('// No files selected', 'err');
+
+      const fmt = document.getElementById('format-select').value;
+      const bitrate = document.getElementById('bitrate-select').value;
+      const btn = document.getElementById('convert-btn');
+      const progressBar = document.getElementById('progress-bar');
+      const progressFill = document.getElementById('progress-fill');
+      const outputList = document.getElementById('output-list');
+
+      btn.disabled = true;
+      progressBar.style.display = 'block';
+      progressFill.style.width = '0%';
+      outputList.innerHTML = '';
+
+      const extMap = { mp3:'mp3', aac:'aac', flac:'flac', wav:'wav', ogg:'ogg', opus:'opus', m4a:'m4a' };
+      const mimeMap = { mp3:'audio/mpeg', aac:'audio/aac', flac:'audio/flac', wav:'audio/wav', ogg:'audio/ogg', opus:'audio/opus', m4a:'audio/mp4' };
+      const ext = extMap[fmt];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const baseName = file.name.replace(/\.[^/.]+$/, '');
+        const inName = 'input_' + i + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const outName = baseName + '.' + ext;
+
+        appendLog(`// [${i + 1}/${files.length}] ${file.name} → ${outName}`, 'info');
+
+        try {
+          await ffmpeg.writeFile(inName, await fetchFile(file));
+
+          const args = ['-i', inName];
+
+          if (fmt === 'mp3')       args.push('-codec:a', 'libmp3lame', '-b:a', bitrate);
+          else if (fmt === 'aac')  args.push('-codec:a', 'aac', '-b:a', bitrate);
+          else if (fmt === 'flac') args.push('-codec:a', 'flac');
+          else if (fmt === 'wav')  args.push('-codec:a', 'pcm_s16le');
+          else if (fmt === 'ogg')  args.push('-codec:a', 'libvorbis', '-b:a', bitrate);
+          else if (fmt === 'opus') args.push('-codec:a', 'libopus', '-b:a', bitrate);
+          else if (fmt === 'm4a')  args.push('-codec:a', 'aac', '-b:a', bitrate);
+
+          args.push(outName);
+
+          await ffmpeg.exec(args);
+
+          const data = await ffmpeg.readFile(outName);
+          const blob = new Blob([data.buffer], { type: mimeMap[fmt] });
+          const url = URL.createObjectURL(blob);
+
+          await ffmpeg.deleteFile(inName);
+          await ffmpeg.deleteFile(outName);
+
+          appendLog(`// ✓ ${outName} — ${formatBytes(blob.size)}`, 'ok');
+
+          const item = document.createElement('div');
+          item.className = 'output-item';
+          item.innerHTML = `
+            <span style="color:var(--accent)">&#10003;</span>
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${outName}</span>
+            <span style="color:var(--muted);font-size:11px">${formatBytes(blob.size)}</span>
+            <a class="dl-btn" href="${url}" download="${outName}">&#8595; SAVE</a>
+          `;
+          outputList.appendChild(item);
+
+        } catch (e) {
+          appendLog(`// ✗ Error on ${file.name}: ${e.message}`, 'err');
+        }
+      }
+
+      progressFill.style.width = '100%';
+      setTimeout(() => {
+        progressBar.style.display = 'none';
+        progressFill.style.width = '0%';
+      }, 1500);
+
+      appendLog(`// All done — ${files.length} file(s) processed.`, 'ok');
+      btn.disabled = false;
+    };
+
+    loadFFmpeg();
+  </script>
+</body>
+</html>
