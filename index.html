@@ -27,6 +27,11 @@
       min-height: 100vh;
     }
 
+    .page-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
     .header {
       border-bottom: 1px solid var(--border);
       padding: 18px 32px;
@@ -358,6 +363,7 @@
   </style>
 </head>
 <body>
+<div class="page-wrap">
 
   <div class="header">
     <div class="logo">RATBAG</div>
@@ -449,6 +455,8 @@
     ratbag &mdash; all processing runs locally in your browser. nothing is uploaded anywhere. ever.
   </div>
 
+</div><!-- /page-wrap -->
+
   <!-- FFmpeg 0.12 — no SharedArrayBuffer required -->
   <script type="module">
     import { FFmpeg } from 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js';
@@ -466,6 +474,7 @@
 
       try {
         const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.9/dist/esm';
+        const ffmpegBase = 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.15/dist/esm';
 
         ffmpeg.on('log', ({ message }) => {
           if (message && (message.includes('time=') || message.includes('size='))) {
@@ -479,8 +488,9 @@
         });
 
         await ffmpeg.load({
-          coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-          wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+          coreURL:   await toBlobURL(`${baseURL}/ffmpeg-core.js`,       'text/javascript'),
+          wasmURL:   await toBlobURL(`${baseURL}/ffmpeg-core.wasm`,     'application/wasm'),
+          workerURL: await toBlobURL(`${ffmpegBase}/worker.js`,         'text/javascript'),
         });
 
         ffmpegReady = true;
