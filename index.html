@@ -460,7 +460,14 @@
   <!-- FFmpeg 0.12 UMD build — worker bundled inline, no cross-origin issues -->
   <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.js"></script>
   <script>
-    const { FFmpeg, toBlobURL } = FFmpegWASM;
+    const { FFmpeg } = FFmpegWASM;
+
+    async function toBlobURL(url, mimeType) {
+      const resp = await fetch(url);
+      const buf = await resp.arrayBuffer();
+      const blob = new Blob([buf], { type: mimeType });
+      return URL.createObjectURL(blob);
+    }
 
     const ffmpeg = new FFmpeg();
     let ffmpegReady = false;
