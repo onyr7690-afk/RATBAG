@@ -457,10 +457,10 @@
 
 </div><!-- /page-wrap -->
 
-  <!-- FFmpeg 0.12 — no SharedArrayBuffer required -->
-  <script type="module">
-    import { FFmpeg } from 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js';
-    import { fetchFile, toBlobURL } from 'https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js';
+  <!-- FFmpeg 0.12 UMD build — worker bundled inline, no cross-origin issues -->
+  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.js"></script>
+  <script>
+    const { FFmpeg, toBlobURL } = FFmpegWASM;
 
     const ffmpeg = new FFmpeg();
     let ffmpegReady = false;
@@ -473,8 +473,7 @@
       const label = document.getElementById('ffmpeg-label');
 
       try {
-        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.9/dist/esm';
-        const ffmpegBase = 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.15/dist/esm';
+        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.9/dist/umd';
 
         ffmpeg.on('log', ({ message }) => {
           if (message && (message.includes('time=') || message.includes('size='))) {
@@ -488,9 +487,8 @@
         });
 
         await ffmpeg.load({
-          coreURL:   await toBlobURL(`${baseURL}/ffmpeg-core.js`,       'text/javascript'),
-          wasmURL:   await toBlobURL(`${baseURL}/ffmpeg-core.wasm`,     'application/wasm'),
-          workerURL: await toBlobURL(`${ffmpegBase}/worker.js`,         'text/javascript'),
+          coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`,   'text/javascript'),
+          wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
         });
 
         ffmpegReady = true;
@@ -503,6 +501,10 @@
         label.textContent = 'FFmpeg failed to load — check your internet connection';
         appendLog('// Error: ' + e.message, 'err');
       }
+    }
+
+    async function fetchFile(file) {
+      return new Uint8Array(await file.arrayBuffer());
     }
 
     window.switchTab = function(btn, name) {
