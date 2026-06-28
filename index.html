@@ -402,11 +402,60 @@
   </div>
 
   <div id="tab-image" class="panel">
-    <div class="coming-soon">
-      <div class="cs-icon">&#9728;</div>
-      <div class="cs-title">Image conversion coming soon</div>
-      <div class="cs-sub">PNG, JPEG, WebP, AVIF &mdash; on the roadmap</div>
+    <div class="status-bar">
+      <span class="dot"></span>
+      <span>Ready — all conversion runs locally, nothing uploaded</span>
     </div>
+
+    <div class="section-label">Drop your images</div>
+
+    <div class="drop-zone" id="img-drop-zone">
+      <input type="file" id="img-file-input" multiple accept="image/*,.svg" />
+      <span class="drop-icon">&#9728;</span>
+      <div class="drop-title">Drop image files here</div>
+      <div class="drop-sub">or click to browse &mdash; PNG, JPEG, WebP, SVG, GIF, BMP supported</div>
+    </div>
+
+    <div class="file-list" id="img-file-list"></div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label>Output format</label>
+        <select id="img-format-select" onchange="updateImgFormatNote()">
+          <option value="png">PNG (lossless)</option>
+          <option value="jpeg">JPEG</option>
+          <option value="webp">WebP</option>
+          <option value="svg">SVG (trace to vector)</option>
+        </select>
+      </div>
+      <div class="control-group" id="img-quality-group">
+        <label>Quality</label>
+        <select id="img-quality-select">
+          <option value="0.7">70% &mdash; smaller file</option>
+          <option value="0.85" selected>85% &mdash; balanced</option>
+          <option value="0.95">95% &mdash; high quality</option>
+          <option value="1.0">100% &mdash; maximum</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="format-note" id="img-format-note">
+      PNG: lossless, supports transparency. Great for graphics, logos, screenshots.
+    </div>
+
+    <button class="convert-btn" id="img-convert-btn" onclick="startImgConvert()">
+      &#9889; CONVERT IMAGES
+    </button>
+
+    <div class="progress-bar" id="img-progress-bar">
+      <div class="progress-fill" id="img-progress-fill"></div>
+    </div>
+
+    <div class="log-box" id="img-log-box">
+      <div class="log-line ok">// ready. drop some images and hit convert.</div>
+    </div>
+
+    <div id="img-output-list" class="output-list"></div>
   </div>
 
   <div class="footer">
@@ -417,6 +466,8 @@
 
 <!-- lamejs for MP3 encoding — single script, no worker, no CORS issues -->
 <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+<!-- ImageTracer JS for bitmap -> SVG tracing (pure browser, no deps) -->
+<script src="https://raw.githubusercontent.com/jankovicsandras/imagetracerjs/master/imagetracer_v1.2.6.js"></script>
 <script>
 
 const formatNotes = {
@@ -664,6 +715,216 @@ async function startConvert() {
   appendLog(`// all done — ${files.length} file(s) processed.`, 'ok');
   btn.disabled = false;
 }
+
+// ---- IMAGE CONVERSION ENGINE ----
+
+const imgFormatNotes = {
+  png:  'PNG: lossless, supports transparency. Great for graphics, logos, screenshots. Quality setting ignored.',
+  jpeg: 'JPEG: lossy compression, no transparency. Best for photos. Quality setting applies.',
+  webp: 'WebP: modern format, smaller than PNG/JPEG at same quality. Supports transparency. Quality setting applies.',
+  svg:  'SVG: traces your image into scalable vector paths. Great for Cricut cutters and logos. Works best on simple, high-contrast images.',
+};
+
+function updateImgFormatNote() {
+  const fmt = document.getElementById('img-format-select').value;
+  document.getElementById('img-format-note').textContent = imgFormatNotes[fmt];
+  const q = document.getElementById('img-quality-group');
+  q.style.opacity = (fmt === 'png' || fmt === 'svg') ? '0.4' : '1';
+}
+
+function appendImgLog(msg, type = 'info') {
+  const box = document.getElementById('img-log-box');
+  const line = document.createElement('div');
+  line.className = 'log-line ' + type;
+  line.textContent = msg;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+let imgFiles = [];
+
+function renderImgFileList() {
+  const list = document.getElementById('img-file-list');
+  list.innerHTML = '';
+  imgFiles.forEach((f, i) => {
+    const item = document.createElement('div');
+    item.className = 'file-item';
+    item.innerHTML = `
+      <span style="color:var(--muted)">&#9728;</span>
+      <span class="file-name">${f.name}</span>
+      <span class="file-size">${formatBytes(f.size)}</span>
+      <button class="remove-btn" onclick="removeImgFile(${i})" aria-label="Remove">&#215;</button>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function removeImgFile(i) {
+  imgFiles.splice(i, 1);
+  renderImgFileList();
+}
+
+const imgDropZone = document.getElementById('img-drop-zone');
+const imgFileInput = document.getElementById('img-file-input');
+
+imgFileInput.addEventListener('change', () => {
+  imgFiles.push(...Array.from(imgFileInput.files));
+  renderImgFileList();
+  imgFileInput.value = '';
+});
+
+imgDropZone.addEventListener('dragover', e => { e.preventDefault(); imgDropZone.classList.add('drag-over'); });
+imgDropZone.addEventListener('dragleave', () => imgDropZone.classList.remove('drag-over'));
+imgDropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  imgDropZone.classList.remove('drag-over');
+  imgFiles.push(...Array.from(e.dataTransfer.files).filter(f =>
+    f.type.startsWith('image/') || /\.(png|jpe?g|webp|svg|gif|bmp|tiff?)$/i.test(f.name)
+  ));
+  renderImgFileList();
+});
+
+// Load image file into an HTMLImageElement
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { resolve(img); };
+    img.onerror = () => reject(new Error('Could not load image: ' + file.name));
+    img.src = url;
+  });
+}
+
+// Draw image to canvas and export as blob
+function canvasConvert(img, fmt, quality) {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d');
+
+    // Fill white background for JPEG (no transparency support)
+    if (fmt === 'image/jpeg') {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    ctx.drawImage(img, 0, 0);
+    canvas.toBlob(blob => {
+      if (blob) resolve(blob);
+      else reject(new Error('Canvas export failed'));
+    }, fmt, quality);
+  });
+}
+
+// Convert to SVG using ImageTracer — pure JS, no workers, works everywhere
+function convertToSvg(img) {
+  return new Promise((resolve, reject) => {
+    try {
+      // Draw to canvas — scale down large images for performance
+      const canvas = document.createElement('canvas');
+      const maxDim = 1200;
+      const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+      canvas.width = Math.round(img.naturalWidth * scale);
+      canvas.height = Math.round(img.naturalHeight * scale);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      if (typeof ImageTracer === 'undefined') {
+        reject(new Error('ImageTracer not loaded — check your internet connection'));
+        return;
+      }
+
+      // ImageTracer options: fewer colours = cleaner SVG for Cricut
+      const options = {
+        numberofcolors: 16,
+        colorsampling: 1,
+        mincolorratio: 0,
+        colorquantcycles: 3,
+        pathomit: 8,
+        ltres: 1,
+        qtres: 1,
+        blurradius: 0,
+        scale: 1 / scale, // scale paths back to original size
+      };
+
+      const svgStr = ImageTracer.imagedataToSVG(
+        ctx.getImageData(0, 0, canvas.width, canvas.height),
+        options
+      );
+      resolve(svgStr);
+    } catch(e) {
+      reject(e);
+    }
+  });
+}
+
+async function startImgConvert() {
+  if (imgFiles.length === 0) return appendImgLog('// no files selected', 'err');
+
+  const fmt = document.getElementById('img-format-select').value;
+  const quality = parseFloat(document.getElementById('img-quality-select').value);
+  const btn = document.getElementById('img-convert-btn');
+  const progressBar = document.getElementById('img-progress-bar');
+  const progressFill = document.getElementById('img-progress-fill');
+  const outputList = document.getElementById('img-output-list');
+
+  btn.disabled = true;
+  progressBar.style.display = 'block';
+  progressFill.style.width = '0%';
+  outputList.innerHTML = '';
+
+  const extMap = { png: 'png', jpeg: 'jpg', webp: 'webp', svg: 'svg' };
+  const mimeMap = { png: 'image/png', jpeg: 'image/jpeg', webp: 'image/webp', svg: 'image/svg+xml' };
+
+  for (let i = 0; i < imgFiles.length; i++) {
+    const file = imgFiles[i];
+    const baseName = file.name.replace(/\.[^/.]+$/, '');
+    const outName = baseName + '.' + extMap[fmt];
+
+    appendImgLog(`// [${i+1}/${imgFiles.length}] loading: ${file.name}`, 'info');
+    progressFill.style.width = Math.round(((i + 0.3) / imgFiles.length) * 100) + '%';
+
+    try {
+      const img = await loadImage(file);
+      appendImgLog(`// converting to ${fmt.toUpperCase()} (${img.naturalWidth}x${img.naturalHeight})...`, 'info');
+      progressFill.style.width = Math.round(((i + 0.7) / imgFiles.length) * 100) + '%';
+
+      let blob;
+
+      if (fmt === 'svg') {
+        appendImgLog('// tracing image to vector paths...', 'info');
+        const svgStr = await convertToSvg(img);
+        blob = new Blob([svgStr], { type: 'image/svg+xml' });
+      } else {
+        blob = await canvasConvert(img, mimeMap[fmt], quality);
+      }
+
+      const url = URL.createObjectURL(blob);
+      appendImgLog(`// ✓ ${outName} — ${formatBytes(blob.size)}`, 'ok');
+
+      const item = document.createElement('div');
+      item.className = 'output-item';
+      item.innerHTML = `
+        <span style="color:var(--accent)">&#10003;</span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${outName}</span>
+        <span style="color:var(--muted);font-size:11px">${formatBytes(blob.size)}</span>
+        <a class="dl-btn" href="${url}" download="${outName}">&#8595; SAVE</a>
+      `;
+      outputList.appendChild(item);
+
+    } catch(e) {
+      appendImgLog(`// ✗ error on ${file.name}: ${e.message}`, 'err');
+    }
+
+    progressFill.style.width = Math.round(((i + 1) / imgFiles.length) * 100) + '%';
+  }
+
+  setTimeout(() => { progressBar.style.display = 'none'; progressFill.style.width = '0%'; }, 1500);
+  appendImgLog(`// all done — ${imgFiles.length} image(s) processed.`, 'ok');
+  btn.disabled = false;
+}
+
 
 </script>
 </body>
