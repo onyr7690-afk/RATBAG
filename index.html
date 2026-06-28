@@ -292,36 +292,6 @@
 
     .dl-btn:hover { background: #d4ff3d; }
 
-    .dl-all-bar {
-      display: none;
-      margin-top: 12px;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    .dl-all-bar.visible { display: flex; }
-
-    .dl-all-btn {
-      background: none;
-      border: 1px solid var(--accent);
-      color: var(--accent);
-      font-family: 'Space Mono', monospace;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 7px 14px;
-      border-radius: 3px;
-      cursor: pointer;
-      transition: background 0.1s, color 0.1s;
-      white-space: nowrap;
-    }
-    .dl-all-btn:hover { background: var(--accent); color: #0e0e0e; }
-
-    .dl-all-note {
-      font-size: 10px;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
     .format-note {
       font-size: 11px;
       color: var(--muted);
@@ -355,6 +325,113 @@
       margin-top: 20px;
     }
 
+
+    /* ---- Extras button strip ---- */
+    .extras-strip {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 8px 32px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .extras-btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 5px 12px;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .extras-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* ---- Bottom extras section ---- */
+    .extras-section {
+      border-top: 1px solid var(--border);
+      padding: 40px 32px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+
+    .extras-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 24px;
+    }
+
+    .extras-card h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 12px;
+      letter-spacing: -0.3px;
+    }
+
+    .extras-card p {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.9;
+      margin-bottom: 10px;
+    }
+
+    .extras-card p:last-of-type { margin-bottom: 0; }
+
+    .donate-btn {
+      display: inline-block;
+      margin-top: 16px;
+      background: var(--accent);
+      color: #0e0e0e;
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 10px 20px;
+      border-radius: 4px;
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      transition: background 0.15s;
+    }
+    .donate-btn:hover { background: #d4ff3d; }
+
+    /* ---- Scroll arrows ---- */
+    .scroll-arrows {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .scroll-arrows.visible { opacity: 1; }
+
+    .scroll-arrow {
+      width: 20px;
+      height: 12px;
+      border-left: 2px solid var(--accent);
+      border-bottom: 2px solid var(--accent);
+      transform: rotate(-45deg);
+      animation: arrowBounce 0.6s ease-in-out infinite alternate;
+    }
+
+    .scroll-arrow:nth-child(2) { animation-delay: 0.15s; opacity: 0.6; }
+    .scroll-arrow:nth-child(3) { animation-delay: 0.3s; opacity: 0.3; }
+
+    @keyframes arrowBounce {
+      from { transform: rotate(-45deg) translateY(-3px); }
+      to   { transform: rotate(-45deg) translateY(3px); }
+    }
+
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
@@ -366,6 +443,10 @@
   <div class="header">
     <div class="logo">RATBAG</div>
     <div class="tagline">// free tools. no bs. runs in your browser.</div>
+  </div>
+
+  <div class="extras-strip">
+    <button class="extras-btn" onclick="scrollToExtras()">EXTRAS &#9660;</button>
   </div>
 
   <div class="tabs">
@@ -429,11 +510,6 @@
       <div class="log-line ok">// ready. drop some tunes and hit convert.</div>
     </div>
 
-    <div class="dl-all-bar" id="dl-all-bar">
-      <button class="dl-all-btn" onclick="downloadAllZip('')">&#8595; DOWNLOAD ALL AS ZIP</button>
-      <button class="dl-all-btn" onclick="downloadAllSeparate('')">&#8595; DOWNLOAD ALL SEPARATE</button>
-      <span class="dl-all-note">Separate downloads may require allowing<br>multiple downloads in your browser.</span>
-    </div>
     <div id="output-list" class="output-list"></div>
   </div>
 
@@ -495,11 +571,6 @@
       <div class="log-line ok">// ready. drop some videos and hit convert.</div>
     </div>
 
-    <div class="dl-all-bar" id="vid-dl-all-bar">
-      <button class="dl-all-btn" onclick="downloadAllZip('vid-')">&#8595; DOWNLOAD ALL AS ZIP</button>
-      <button class="dl-all-btn" onclick="downloadAllSeparate('vid-')">&#8595; DOWNLOAD ALL SEPARATE</button>
-      <span class="dl-all-note">Separate downloads may require allowing<br>multiple downloads in your browser.</span>
-    </div>
     <div id="vid-output-list" class="output-list"></div>
   </div>
 
@@ -557,11 +628,6 @@
       <div class="log-line ok">// ready. drop some images and hit convert.</div>
     </div>
 
-    <div class="dl-all-bar" id="img-dl-all-bar">
-      <button class="dl-all-btn" onclick="downloadAllZip('img-')">&#8595; DOWNLOAD ALL AS ZIP</button>
-      <button class="dl-all-btn" onclick="downloadAllSeparate('img-')">&#8595; DOWNLOAD ALL SEPARATE</button>
-      <span class="dl-all-note">Separate downloads may require allowing<br>multiple downloads in your browser.</span>
-    </div>
     <div id="img-output-list" class="output-list"></div>
   </div>
 
@@ -573,8 +639,6 @@
 
 <!-- lamejs for MP3 encoding — single script, no worker, no CORS issues -->
 <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
-<!-- JSZip for ZIP downloads -->
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- ImageTracer JS for bitmap -> SVG tracing (pure browser, no deps) -->
 <script src="https://raw.githubusercontent.com/jankovicsandras/imagetracerjs/master/imagetracer_v1.2.6.js"></script>
 <script>
@@ -767,8 +831,6 @@ async function startConvert() {
   progressBar.style.display = 'block';
   progressFill.style.width = '0%';
   outputList.innerHTML = '';
-  outputStore[''] = [];
-  document.getElementById('dl-all-bar').classList.remove('visible');
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
@@ -802,7 +864,6 @@ async function startConvert() {
         outName = baseName + '.wav';
       }
 
-      registerOutput('', outName, blob);
       const url = URL.createObjectURL(blob);
       appendLog(`// ✓ ${outName} — ${formatBytes(blob.size)}`, 'ok');
 
@@ -985,8 +1046,6 @@ async function startImgConvert() {
   progressBar.style.display = 'block';
   progressFill.style.width = '0%';
   outputList.innerHTML = '';
-  outputStore['img-'] = [];
-  document.getElementById('img-dl-all-bar').classList.remove('visible');
 
   const extMap = { png: 'png', jpeg: 'jpg', webp: 'webp', svg: 'svg' };
   const mimeMap = { png: 'image/png', jpeg: 'image/jpeg', webp: 'image/webp', svg: 'image/svg+xml' };
@@ -1014,7 +1073,6 @@ async function startImgConvert() {
         blob = await canvasConvert(img, mimeMap[fmt], quality);
       }
 
-      registerOutput('img-', outName, blob);
       const url = URL.createObjectURL(blob);
       appendImgLog(`// ✓ ${outName} — ${formatBytes(blob.size)}`, 'ok');
 
@@ -1453,8 +1511,6 @@ async function startVidConvert() {
   progressBar.style.display = 'block';
   progressFill.style.width = '0%';
   outputList.innerHTML = '';
-  outputStore['vid-'] = [];
-  document.getElementById('vid-dl-all-bar').classList.remove('visible');
 
   const baseName = vidFile.name.replace(/\.[^/.]+$/, '');
 
@@ -1479,7 +1535,6 @@ async function startVidConvert() {
     progressFill.style.width = '100%';
     appendVidLog(`// ✓ ${outName} — ${formatBytes(blob.size)}`, 'ok');
 
-    registerOutput('vid-', outName, blob);
     const url = URL.createObjectURL(blob);
     const item = document.createElement('div');
     item.className = 'output-item';
@@ -1501,47 +1556,16 @@ async function startVidConvert() {
 }
 
 
-// ---- DOWNLOAD ALL ----
+// ---- EXTRAS / SCROLL ----
+function scrollToExtras() {
+  const section = document.getElementById('extras-section');
+  if (!section) return;
+  section.scrollIntoView({ behavior: 'smooth' });
 
-// Stores for each tab's output files: { name, blob }
-const outputStore = { '': [], 'vid-': [], 'img-': [] };
-
-function registerOutput(tabPrefix, name, blob) {
-  outputStore[tabPrefix].push({ name, blob });
-  // Show the download-all bar
-  const bar = document.getElementById(tabPrefix + 'dl-all-bar');
-  if (bar) bar.classList.add('visible');
-}
-
-async function downloadAllZip(tabPrefix) {
-  const files = outputStore[tabPrefix];
-  if (!files.length) return;
-
-  const zip = new JSZip();
-  for (const f of files) zip.file(f.name, f.blob);
-
-  const zipBlob = await zip.generateAsync({ type: 'blob' });
-  const url = URL.createObjectURL(zipBlob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'ratbag-output.zip';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-async function downloadAllSeparate(tabPrefix) {
-  const files = outputStore[tabPrefix];
-  if (!files.length) return;
-  // Stagger downloads slightly so browser doesn't block them
-  for (let i = 0; i < files.length; i++) {
-    await new Promise(res => setTimeout(res, i * 200));
-    const url = URL.createObjectURL(files[i].blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = files[i].name;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
+  // Show flashing arrows for 3 seconds
+  const arrows = document.getElementById('scroll-arrows');
+  arrows.classList.add('visible');
+  setTimeout(() => arrows.classList.remove('visible'), 3000);
 }
 
 
